@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Korean Address Search API - Implementation Guide</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f8f9fa; color: #333; line-height: 1.6; }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; padding: 50px 40px; text-align: center;
+        }
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 16px; opacity: 0.9; }
+        .header .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 20px; font-size: 13px; margin-top: 12px; }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+        .toc {
+            background: #fff; border-radius: 10px; padding: 28px 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 32px;
+        }
+        .toc h2 { font-size: 18px; margin-bottom: 14px; color: #667eea; }
+        .toc ol { padding-left: 20px; }
+        .toc li { margin-bottom: 6px; }
+        .toc a { color: #667eea; text-decoration: none; font-size: 14px; }
+        .toc a:hover { text-decoration: underline; }
+
+        .section {
+            background: #fff; border-radius: 10px; padding: 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 28px;
+        }
+        .section h2 {
+            font-size: 22px; font-weight: 700; color: #333;
+            border-bottom: 3px solid #667eea; padding-bottom: 10px; margin-bottom: 20px;
+        }
+        .section h3 { font-size: 17px; font-weight: 600; color: #555; margin: 20px 0 10px; }
+        .section p { margin-bottom: 12px; font-size: 14px; }
+        .section ul, .section ol { padding-left: 22px; margin-bottom: 14px; }
+        .section li { margin-bottom: 6px; font-size: 14px; }
+
+        code {
+            background: #f1f3f5; padding: 2px 6px; border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; color: #e74c3c;
+        }
+
+        pre {
+            background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+            padding: 20px; margin: 14px 0; overflow-x: auto;
+            font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.5;
+        }
+        pre .comment { color: #6c7086; }
+        pre .keyword { color: #89b4fa; }
+        pre .string { color: #a6e3a1; }
+        pre .number { color: #fab387; }
+        pre .prop { color: #89dceb; }
+
+        table {
+            width: 100%; border-collapse: collapse; margin: 14px 0;
+            font-size: 13px;
+        }
+        th {
+            background: #667eea; color: #fff; padding: 10px 14px;
+            text-align: left; font-weight: 600;
+        }
+        td { padding: 10px 14px; border-bottom: 1px solid #eee; }
+        tr:hover td { background: #f8f9ff; }
+
+        .note {
+            background: #fff3cd; border-left: 4px solid #ffc107;
+            padding: 14px 18px; border-radius: 0 6px 6px 0; margin: 14px 0;
+            font-size: 13px;
+        }
+        .note strong { color: #856404; }
+
+        .success {
+            background: #d4edda; border-left: 4px solid #28a745;
+            padding: 14px 18px; border-radius: 0 6px 6px 0; margin: 14px 0;
+            font-size: 13px;
+        }
+
+        .error {
+            background: #f8d7da; border-left: 4px solid #dc3545;
+            padding: 14px 18px; border-radius: 0 6px 6px 0; margin: 14px 0;
+            font-size: 13px;
+        }
+
+        .flow-diagram {
+            background: #f8f9ff; border: 1px solid #e0e3ff; border-radius: 8px;
+            padding: 24px; margin: 14px 0; text-align: center;
+            font-family: 'Consolas', monospace; font-size: 13px; line-height: 2.2;
+        }
+        .flow-arrow { color: #667eea; font-weight: bold; }
+
+        .badge-get { background: #28a745; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+        .badge-post { background: #007bff; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+
+        .file-tree {
+            background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+            padding: 20px; margin: 14px 0; font-family: 'Consolas', monospace; font-size: 13px;
+        }
+        .file-tree .folder { color: #89b4fa; }
+        .file-tree .file { color: #a6e3a1; }
+        .file-tree .desc { color: #6c7086; }
+
+        footer {
+            text-align: center; padding: 30px; color: #999; font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Korean Address Search API</h1>
+    <p>Implementation Guide — juso.go.kr Open API Integration</p>
+    <div class="badge">ASP.NET 8.0 | Leaflet Map | OpenStreetMap</div>
+</div>
+
+<div class="container">
+
+    <!-- TABLE OF CONTENTS -->
+    <div class="toc">
+        <h2>Table of Contents</h2>
+        <ol>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#architecture">Architecture & Flow</a></li>
+            <li><a href="#setup">Setup & Configuration</a></li>
+            <li><a href="#api-key">Getting API Key (confmKey)</a></li>
+            <li><a href="#endpoints">API Endpoints</a></li>
+            <li><a href="#request-response">Request & Response Format</a></li>
+            <li><a href="#models">Data Models (Juso Object)</a></li>
+            <li><a href="#backend">Backend Implementation (ASP.NET)</a></li>
+            <li><a href="#frontend">Frontend Integration</a></li>
+            <li><a href="#widget">Embeddable Widget</a></li>
+            <li><a href="#map">Map Integration (Leaflet)</a></li>
+            <li><a href="#errors">Error Codes</a></li>
+            <li><a href="#project-structure">Project Structure</a></li>
+            <li><a href="#existing">Existing GMEBiz Implementation</a></li>
+        </ol>
+    </div>
+
+    <!-- 1. OVERVIEW -->
+    <div class="section" id="overview">
+        <h2>1. Overview</h2>
+        <p>This project provides a <strong>Korean address search</strong> service by proxying the <strong>juso.go.kr</strong> (주소기반산업지원서비스) Open API from the Korean Ministry of Interior and Safety.</p>
+        <p>It enables searching Korean addresses by keyword and returns structured address data including postal code, road address, lot number address, city, district, and building information.</p>
+
+        <h3>Key Features</h3>
+        <ul>
+            <li>Search Korean addresses by keyword (Korean or English)</li>
+            <li>Server-side proxy to juso.go.kr (avoids CORS issues)</li>
+            <li>Pagination support</li>
+            <li>Map view with pin marker (Leaflet + OpenStreetMap)</li>
+            <li>Merchant signup form integration</li>
+            <li>Embeddable widget for any project</li>
+        </ul>
+
+        <h3>Third-Party API</h3>
+        <table>
+            <tr><th>Provider</th><td>Korean Government — Ministry of Interior and Safety (행정안전부)</td></tr>
+            <tr><th>Portal</th><td><a href="https://business.juso.go.kr">https://business.juso.go.kr</a></td></tr>
+            <tr><th>Korean API</th><td><code>https://business.juso.go.kr/addrlink/addrLinkApi.do</code></td></tr>
+            <tr><th>English API</th><td><code>https://business.juso.go.kr/addrlink/addrEngApi.do</code></td></tr>
+            <tr><th>Cost</th><td>Free</td></tr>
+            <tr><th>Rate Limit</th><td>Varies by plan (default: 1,000 calls/day)</td></tr>
+            <tr><th>Auth</th><td>confmKey (tied to registered domain)</td></tr>
+        </table>
+    </div>
+
+    <!-- 2. ARCHITECTURE -->
+    <div class="section" id="architecture">
+        <h2>2. Architecture & Flow</h2>
+
+        <div class="flow-diagram">
+            <strong>User Browser</strong><br>
+            <span class="flow-arrow">│</span><br>
+            <span class="flow-arrow">▼</span> Click "Find Address" → Search keyword<br>
+            <span class="flow-arrow">│</span><br>
+            <strong>ASP.NET Backend</strong> (localhost:5600)<br>
+            <code>GET /api/address?keyword=...&language=kr</code><br>
+            <span class="flow-arrow">│</span><br>
+            <span class="flow-arrow">▼</span> Proxy request with confmKey<br>
+            <span class="flow-arrow">│</span><br>
+            <strong>juso.go.kr API</strong><br>
+            <code>POST addrLinkApi.do?keyword=...&confmKey=...</code><br>
+            <span class="flow-arrow">│</span><br>
+            <span class="flow-arrow">▼</span> Returns JSON (Juso list)<br>
+            <span class="flow-arrow">│</span><br>
+            <strong>User selects address</strong> → Form fills + Map shows location
+        </div>
+
+        <h3>Why a Backend Proxy?</h3>
+        <ul>
+            <li><strong>CORS:</strong> juso.go.kr blocks direct browser requests from non-registered domains</li>
+            <li><strong>Key Security:</strong> API key (confmKey) stays on server, not exposed in frontend</li>
+            <li><strong>Domain Binding:</strong> The confmKey is validated against the calling domain — server-to-server calls bypass this</li>
+        </ul>
+    </div>
+
+    <!-- 3. SETUP -->
+    <div class="section" id="setup">
+        <h2>3. Setup & Configuration</h2>
+
+        <h3>Prerequisites</h3>
+        <ul>
+            <li>.NET 8 SDK (<code>dotnet --version</code> → 8.x)</li>
+            <li>juso.go.kr API key (confmKey)</li>
+        </ul>
+
+        <h3>Quick Start</h3>
+<pre><span class="comment"># 1. Navigate to project</span>
+<span class="keyword">cd</span> <span class="string">"C:\Users\GME\Desktop\Document Prepared by AI\AddressSearch"</span>
+
+<span class="comment"># 2. Configure API key in appsettings.json</span>
+
+<span class="comment"># 3. Run</span>
+<span class="keyword">dotnet run</span> --urls=<span class="string">"http://localhost:5600"</span>
+
+<span class="comment"># 4. Open browser</span>
+<span class="keyword">start</span> http://localhost:5600</pre>
+
+        <h3>Configuration (appsettings.json)</h3>
+<pre>{
+  <span class="prop">"AddressApi"</span>: {
+    <span class="prop">"KrUrl"</span>: <span class="string">"https://business.juso.go.kr/addrlink/addrLinkApi.do"</span>,
+    <span class="prop">"KrKey"</span>: <span class="string">"YOUR_KOREAN_API_KEY"</span>,
+    <span class="prop">"EnUrl"</span>: <span class="string">"https://business.juso.go.kr/addrlink/addrEngApi.do"</span>,
+    <span class="prop">"EnKey"</span>: <span class="string">"YOUR_ENGLISH_API_KEY"</span>
+  }
+}</pre>
+
+        <div class="note">
+            <strong>Note:</strong> You may use the same confmKey for both Korean and English APIs, or register separate keys for each.
+        </div>
+    </div>
+
+    <!-- 4. API KEY -->
+    <div class="section" id="api-key">
+        <h2>4. Getting API Key (confmKey)</h2>
+
+        <h3>Step-by-Step Registration</h3>
+        <ol>
+            <li>Go to <a href="https://business.juso.go.kr"><strong>https://business.juso.go.kr</strong></a></li>
+            <li>Click <strong>회원가입</strong> (Sign Up) → Create account</li>
+            <li>Login → Go to <strong>주소제공 → Open API 신청</strong></li>
+            <li>Fill the application form:
+                <table>
+                    <tr><th>Field</th><th>Value</th></tr>
+                    <tr><td>서비스명 (Service Name)</td><td>Your project name</td></tr>
+                    <tr><td>서비스URL (Service URL)</td><td><code>http://localhost</code> (for development)</td></tr>
+                    <tr><td>활용용도 (Purpose)</td><td>Address search</td></tr>
+                </table>
+            </li>
+            <li>Submit → You'll receive a <strong>confmKey</strong> (usually instant for dev)</li>
+        </ol>
+
+        <div class="error">
+            <strong>Important:</strong> The confmKey is <strong>locked to the registered domain</strong>. If you register <code>http://localhost</code>, it only works from localhost. For production, update the registered URL to your production domain.
+        </div>
+    </div>
+
+    <!-- 5. ENDPOINTS -->
+    <div class="section" id="endpoints">
+        <h2>5. API Endpoints</h2>
+
+        <h3><span class="badge-get">GET</span> <code>/api/address</code> — Search Address</h3>
+        <table>
+            <tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr>
+            <tr><td><code>keyword</code></td><td>string</td><td>Yes</td><td>Search keyword (address, city, postal code)</td></tr>
+            <tr><td><code>page</code></td><td>int</td><td>Yes</td><td>Page number (starts from 1)</td></tr>
+            <tr><td><code>count</code></td><td>int</td><td>Yes</td><td>Results per page (max 100, recommended 20)</td></tr>
+            <tr><td><code>language</code></td><td>string</td><td>Yes</td><td><code>kr</code> for Korean, <code>en</code> for English</td></tr>
+            <tr><td><code>confmKey</code></td><td>string</td><td>No</td><td>API key (uses appsettings.json key if omitted)</td></tr>
+        </table>
+
+        <h3>Example Request</h3>
+<pre><span class="keyword">GET</span> /api/address?keyword=<span class="string">강남대로</span>&page=<span class="number">1</span>&count=<span class="number">10</span>&language=<span class="string">kr</span></pre>
+
+<pre><span class="keyword">GET</span> /api/address?keyword=<span class="string">Seoul</span>&page=<span class="number">1</span>&count=<span class="number">10</span>&language=<span class="string">en</span></pre>
+
+        <h3><span class="badge-get">GET</span> <code>/api/config</code> — Check Configuration</h3>
+        <p>Returns whether API keys are configured on the server.</p>
+<pre><span class="comment">// Response</span>
+{
+  <span class="prop">"kr_key_set"</span>: <span class="keyword">true</span>,
+  <span class="prop">"en_key_set"</span>: <span class="keyword">true</span>
+}</pre>
+    </div>
+
+    <!-- 6. REQUEST RESPONSE -->
+    <div class="section" id="request-response">
+        <h2>6. Request & Response Format</h2>
+
+        <h3>Success Response</h3>
+<pre>{
+  <span class="prop">"results"</span>: {
+    <span class="prop">"common"</span>: {
+      <span class="prop">"errorCode"</span>: <span class="string">"0"</span>,
+      <span class="prop">"errorMessage"</span>: <span class="string">"정상"</span>,
+      <span class="prop">"totalCount"</span>: <span class="string">"526075"</span>,
+      <span class="prop">"currentPage"</span>: <span class="string">"1"</span>,
+      <span class="prop">"countPerPage"</span>: <span class="string">"10"</span>
+    },
+    <span class="prop">"juso"</span>: [
+      {
+        <span class="prop">"zipNo"</span>: <span class="string">"06232"</span>,
+        <span class="prop">"roadAddr"</span>: <span class="string">"864 Eonju-ro, Gangnam-gu, Seoul"</span>,
+        <span class="prop">"jibunAddr"</span>: <span class="string">"636-4 Sinsa-dong, Gangnam-gu, Seoul"</span>,
+        <span class="prop">"siNm"</span>: <span class="string">"Seoul"</span>,
+        <span class="prop">"sggNm"</span>: <span class="string">"Gangnam-gu"</span>,
+        <span class="prop">"emdNm"</span>: <span class="string">"Sinsa-dong"</span>,
+        <span class="prop">"bdNm"</span>: <span class="string">"GME Tower"</span>,
+        <span class="prop">"rn"</span>: <span class="string">"Eonju-ro"</span>,
+        <span class="comment">// ... more fields</span>
+      }
+    ]
+  }
+}</pre>
+
+        <h3>Error Response</h3>
+<pre>{
+  <span class="prop">"results"</span>: {
+    <span class="prop">"common"</span>: {
+      <span class="prop">"errorCode"</span>: <span class="string">"E0001"</span>,
+      <span class="prop">"errorMessage"</span>: <span class="string">"승인되지 않은 KEY 입니다."</span>,
+      <span class="prop">"totalCount"</span>: <span class="string">"0"</span>
+    },
+    <span class="prop">"juso"</span>: []
+  }
+}</pre>
+    </div>
+
+    <!-- 7. DATA MODELS -->
+    <div class="section" id="models">
+        <h2>7. Data Models (Juso Object)</h2>
+        <p>Each address result contains the following fields:</p>
+
+        <table>
+            <tr><th>Field</th><th>Description</th><th>Example (English)</th><th>Example (Korean)</th></tr>
+            <tr><td><code>zipNo</code></td><td>Postal Code</td><td>06232</td><td>06232</td></tr>
+            <tr><td><code>roadAddr</code></td><td>Full road address</td><td>864 Eonju-ro, Gangnam-gu, Seoul</td><td>서울특별시 강남구 언주로 864</td></tr>
+            <tr><td><code>roadAddrPart1</code></td><td>Road address part 1</td><td colspan="2">Main road address portion</td></tr>
+            <tr><td><code>roadAddrPart2</code></td><td>Road address part 2</td><td colspan="2">Additional detail (building info)</td></tr>
+            <tr><td><code>jibunAddr</code></td><td>Lot number address (지번)</td><td>636-4 Sinsa-dong, Gangnam-gu</td><td>강남구 신사동 636-4</td></tr>
+            <tr><td><code>engAddr</code></td><td>English address</td><td colspan="2">English version (Korean API only)</td></tr>
+            <tr><td><code>korAddr</code></td><td>Korean address</td><td colspan="2">Korean version (English API only)</td></tr>
+            <tr><td><code>siNm</code></td><td>City/Province (시/도)</td><td>Seoul</td><td>서울특별시</td></tr>
+            <tr><td><code>sggNm</code></td><td>District (시/군/구)</td><td>Gangnam-gu</td><td>강남구</td></tr>
+            <tr><td><code>emdNm</code></td><td>Town/Village (읍/면/동)</td><td>Sinsa-dong</td><td>신사동</td></tr>
+            <tr><td><code>rn</code></td><td>Road name (도로명)</td><td>Eonju-ro</td><td>언주로</td></tr>
+            <tr><td><code>bdNm</code></td><td>Building name</td><td colspan="2">Building name if available</td></tr>
+            <tr><td><code>admCd</code></td><td>Administrative code</td><td colspan="2">Administrative district code</td></tr>
+            <tr><td><code>liNm</code></td><td>Li (리) sub-region</td><td colspan="2">Sub-region name</td></tr>
+            <tr><td><code>bdKdcd</code></td><td>Building type code</td><td colspan="2">0=non-apartment, 1=apartment</td></tr>
+            <tr><td><code>udrtYn</code></td><td>Underground flag</td><td colspan="2">0=above ground, 1=underground</td></tr>
+            <tr><td><code>lnbrMnnm</code></td><td>Lot main number</td><td colspan="2">Main lot number</td></tr>
+            <tr><td><code>lnbrSlno</code></td><td>Lot sub number</td><td colspan="2">Sub lot number</td></tr>
+            <tr><td><code>buldMnnm</code></td><td>Building main number</td><td colspan="2">Main building number</td></tr>
+            <tr><td><code>buldSlno</code></td><td>Building sub number</td><td colspan="2">Sub building number</td></tr>
+        </table>
+    </div>
+
+    <!-- 8. BACKEND -->
+    <div class="section" id="backend">
+        <h2>8. Backend Implementation (ASP.NET)</h2>
+
+        <h3>AddressService.cs — Core Logic</h3>
+<pre><span class="keyword">public async</span> Task&lt;JusoApiResponse&gt; SearchAsync(
+    <span class="keyword">string</span> keyword, <span class="keyword">int</span> page, <span class="keyword">int</span> count,
+    <span class="keyword">string</span> language, <span class="keyword">string?</span> confmKey = <span class="keyword">null</span>)
+{
+    <span class="comment">// Select URL based on language</span>
+    <span class="keyword">string</span> baseUrl = language == <span class="string">"en"</span> ? _config.EnUrl : _config.KrUrl;
+
+    <span class="comment">// Use provided key or fall back to config</span>
+    <span class="keyword">string</span> key = <span class="keyword">string</span>.IsNullOrEmpty(confmKey)
+        ? (language == <span class="string">"en"</span> ? _config.EnKey : _config.KrKey)
+        : confmKey;
+
+    <span class="comment">// Build query string</span>
+    <span class="keyword">var</span> query = HttpUtility.ParseQueryString(<span class="keyword">string</span>.Empty);
+    query[<span class="string">"currentPage"</span>] = page.ToString();
+    query[<span class="string">"countPerPage"</span>] = count.ToString();
+    query[<span class="string">"keyword"</span>] = keyword;
+    query[<span class="string">"confmKey"</span>] = key;
+    query[<span class="string">"resultType"</span>] = <span class="string">"json"</span>;
+
+    <span class="comment">// Call juso.go.kr</span>
+    <span class="keyword">var</span> response = <span class="keyword">await</span> _httpClient.PostAsync(
+        $<span class="string">"{baseUrl}?{query}"</span>, <span class="keyword">null</span>);
+    <span class="keyword">var</span> body = <span class="keyword">await</span> response.Content.ReadAsStringAsync();
+
+    <span class="keyword">return</span> JsonSerializer.Deserialize&lt;JusoApiResponse&gt;(body);
+}</pre>
+
+        <h3>Program.cs — Endpoint Registration</h3>
+<pre><span class="comment">// Configure DI</span>
+builder.Services.Configure&lt;AddressApiConfig&gt;(
+    builder.Configuration.GetSection(<span class="string">"AddressApi"</span>));
+builder.Services.AddHttpClient&lt;AddressService&gt;();
+
+<span class="comment">// Search endpoint</span>
+app.MapGet(<span class="string">"/api/address"</span>, <span class="keyword">async</span> (
+    <span class="keyword">string</span> keyword, <span class="keyword">int</span> page, <span class="keyword">int</span> count,
+    <span class="keyword">string</span> language, <span class="keyword">string?</span> confmKey,
+    AddressService addressService) =>
+{
+    <span class="keyword">var</span> result = <span class="keyword">await</span> addressService.SearchAsync(
+        keyword, page, count, language, confmKey);
+    <span class="keyword">return</span> Results.Ok(result);
+});</pre>
+    </div>
+
+    <!-- 9. FRONTEND -->
+    <div class="section" id="frontend">
+        <h2>9. Frontend Integration</h2>
+
+        <h3>JavaScript — Call the API</h3>
+<pre><span class="keyword">async function</span> searchAddress(keyword, language) {
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(
+        <span class="string">`/api/address?keyword=${encodeURIComponent(keyword)}&page=1&count=20&language=${language}`</span>
+    );
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.json();
+
+    <span class="keyword">if</span> (data.results.common.errorCode === <span class="string">'0'</span>) {
+        <span class="keyword">const</span> addresses = data.results.juso;
+        <span class="comment">// Render results...</span>
+    }
+}</pre>
+
+        <h3>Address Selection — Form Fill Logic</h3>
+        <p>Matches the GMEBiz merchant signup pattern (from <code>TableOnboardingAddress.js</code>):</p>
+<pre><span class="keyword">function</span> selectAddress(addr, language) {
+    <span class="keyword">if</span> (language === <span class="string">'en'</span>) {
+        postalCode.value  = addr.zipNo;
+        addressLine1.value = addr.roadAddr;
+        addressLine2.value = addr.roadAddr;
+    } <span class="keyword">else</span> {
+        <span class="comment">// Korean format</span>
+        postalCode.value  = addr.zipNo;
+        addressLine1.value = addr.roadAddrPart1 + <span class="string">' , '</span> + addr.roadAddrPart2;
+        addressLine2.value = addr.emdNm + <span class="string">' , '</span> + addr.jibunAddr;
+    }
+}</pre>
+
+        <h3>React/Next.js — Using Fetch</h3>
+<pre><span class="keyword">const</span> searchAddress = <span class="keyword">async</span> (keyword) => {
+    <span class="keyword">const</span> res = <span class="keyword">await</span> fetch(
+        <span class="string">`http://localhost:5600/api/address?keyword=${encodeURIComponent(keyword)}&page=1&count=10&language=en`</span>
+    );
+    <span class="keyword">const</span> { results } = <span class="keyword">await</span> res.json();
+    <span class="keyword">return</span> results.juso; <span class="comment">// Array of Juso objects</span>
+};</pre>
+
+        <h3>Spring Boot (Java) — Using RestTemplate</h3>
+        <p>This is how the existing <code>gmehom-common</code> service implements it:</p>
+<pre><span class="comment">// Same pattern as AddressController.java in gmehom-common</span>
+RestTemplate restTemplate = <span class="keyword">new</span> RestTemplate();
+String url = baseUrl + <span class="string">"?currentPage="</span> + page
+    + <span class="string">"&countPerPage="</span> + count
+    + <span class="string">"&keyword="</span> + keyword
+    + <span class="string">"&confmKey="</span> + confmKey
+    + <span class="string">"&resultType=json"</span>;
+
+ResponseEntity&lt;String&gt; response = restTemplate.postForEntity(url, <span class="keyword">null</span>, String.<span class="keyword">class</span>);
+AddressApiResult result = mapper.readValue(response.getBody(), AddressApiResult.<span class="keyword">class</span>);</pre>
+    </div>
+
+    <!-- 10. WIDGET -->
+    <div class="section" id="widget">
+        <h2>10. Embeddable Widget</h2>
+        <p>Use the address search dialog in <strong>any HTML page</strong> with just 2 lines:</p>
+
+        <h3>Step 1: Include the Script</h3>
+<pre><span class="keyword">&lt;script</span> src=<span class="string">"http://localhost:5600/js/address-widget.js"</span><span class="keyword">&gt;&lt;/script&gt;</span></pre>
+
+        <h3>Step 2: Open the Dialog</h3>
+<pre><span class="keyword">function</span> findAddress() {
+    AddressWidget.open({
+        apiUrl: <span class="string">'http://localhost:5600/api/address'</span>,
+        language: <span class="string">'kr'</span>,   <span class="comment">// 'kr' or 'en'</span>
+        onSelect: <span class="keyword">function</span>(addr) {
+            <span class="comment">// addr = full Juso object</span>
+            document.getElementById(<span class="string">'zip'</span>).value = addr.zipNo;
+            document.getElementById(<span class="string">'addr'</span>).value = addr.roadAddr;
+            document.getElementById(<span class="string">'city'</span>).value = addr.siNm;
+        }
+    });
+}</pre>
+
+        <div class="success">
+            <strong>The widget is self-contained:</strong> It injects its own CSS, creates the dialog DOM, handles search, pagination, and selection — no dependencies required.
+        </div>
+    </div>
+
+    <!-- 11. MAP -->
+    <div class="section" id="map">
+        <h2>11. Map Integration (Leaflet)</h2>
+        <p>After address selection, a map is shown using <strong>Leaflet.js</strong> + <strong>OpenStreetMap</strong> tiles with geocoding via <strong>Nominatim</strong>.</p>
+
+        <h3>How It Works</h3>
+        <ol>
+            <li>User selects an address from search results</li>
+            <li>Frontend sends the road address to Nominatim geocoding API</li>
+            <li>Receives latitude/longitude coordinates</li>
+            <li>Renders Leaflet map with pin marker and popup</li>
+            <li>Shows "Open in Google Maps" link</li>
+        </ol>
+
+        <h3>Dependencies (included via CDN)</h3>
+<pre><span class="comment">&lt;!-- In index.html head --&gt;</span>
+<span class="keyword">&lt;link</span> rel=<span class="string">"stylesheet"</span> href=<span class="string">"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"</span> <span class="keyword">/&gt;</span>
+<span class="keyword">&lt;script</span> src=<span class="string">"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"</span><span class="keyword">&gt;&lt;/script&gt;</span></pre>
+
+        <h3>Geocoding (Nominatim — Free, No API Key)</h3>
+<pre><span class="keyword">const</span> query = encodeURIComponent(addr.roadAddr);
+<span class="keyword">const</span> res = <span class="keyword">await</span> fetch(
+    <span class="string">`https://nominatim.openstreetmap.org/search?q=${query}&format=json&countrycodes=kr&limit=1`</span>
+);
+<span class="keyword">const</span> geo = <span class="keyword">await</span> res.json();
+<span class="keyword">const</span> lat = parseFloat(geo[<span class="number">0</span>].lat);
+<span class="keyword">const</span> lng = parseFloat(geo[<span class="number">0</span>].lon);</pre>
+
+        <div class="note">
+            <strong>Nominatim Usage Policy:</strong> Max 1 request/second, include a User-Agent header for production use. For high-volume, consider self-hosting Nominatim or using a paid geocoding service.
+        </div>
+    </div>
+
+    <!-- 12. ERROR CODES -->
+    <div class="section" id="errors">
+        <h2>12. Error Codes (juso.go.kr)</h2>
+        <table>
+            <tr><th>Code</th><th>Message</th><th>Cause & Solution</th></tr>
+            <tr><td><code>0</code></td><td>정상 (Normal)</td><td>Success — no error</td></tr>
+            <tr><td><code>E0001</code></td><td>승인되지 않은 KEY</td><td>Invalid confmKey. Check key and registered domain.</td></tr>
+            <tr><td><code>E0005</code></td><td>유효하지 않은 KEY</td><td>confmKey doesn't match. Register at business.juso.go.kr.</td></tr>
+            <tr><td><code>E0006</code></td><td>허용되지 않은 IP</td><td>Your IP/domain is not registered for this key.</td></tr>
+            <tr><td><code>E0008</code></td><td>일일 허용 초과</td><td>Daily API call limit exceeded. Wait or upgrade.</td></tr>
+            <tr><td><code>E0009</code></td><td>검색어 오류</td><td>Keyword too short (min 2 characters).</td></tr>
+            <tr><td><code>E0010</code></td><td>검색어 없음</td><td>Empty keyword.</td></tr>
+            <tr><td><code>E0011</code></td><td>검색어 모호</td><td>Keyword too vague. Be more specific.</td></tr>
+            <tr><td><code>E0012</code></td><td>특수문자 오류</td><td>Invalid special characters in keyword.</td></tr>
+            <tr><td><code>E0013</code></td><td>KEY 만료/정지</td><td>confmKey expired or suspended.</td></tr>
+        </table>
+    </div>
+
+    <!-- 13. PROJECT STRUCTURE -->
+    <div class="section" id="project-structure">
+        <h2>13. Project Structure</h2>
+
+        <div class="file-tree">
+<span class="folder">AddressSearch/</span>
+├── <span class="file">AddressSearch.csproj</span>     <span class="desc"># .NET 8 project file</span>
+├── <span class="file">Program.cs</span>               <span class="desc"># Minimal API endpoints</span>
+├── <span class="file">appsettings.json</span>         <span class="desc"># API keys & config</span>
+│
+├── <span class="folder">Models/</span>
+│   ├── <span class="file">AddressApiConfig.cs</span>  <span class="desc"># Config binding (KrUrl, KrKey, EnUrl, EnKey)</span>
+│   └── <span class="file">JusoModels.cs</span>        <span class="desc"># Juso, JusoApiResponse, JusoCommon, JusoResults</span>
+│
+├── <span class="folder">Services/</span>
+│   └── <span class="file">AddressService.cs</span>    <span class="desc"># juso.go.kr proxy service</span>
+│
+└── <span class="folder">wwwroot/</span>
+    ├── <span class="file">index.html</span>           <span class="desc"># Merchant signup form + search dialog</span>
+    ├── <span class="folder">css/</span>
+    │   └── <span class="file">style.css</span>        <span class="desc"># All styles including map</span>
+    └── <span class="folder">js/</span>
+        └── <span class="file">app.js</span>           <span class="desc"># Search, select, pagination, map logic</span>
+        </div>
+    </div>
+
+    <!-- 14. EXISTING GMEBIZ -->
+    <div class="section" id="existing">
+        <h2>14. Existing GMEBiz Implementation Reference</h2>
+        <p>This project mirrors the address search flow from the GMEBiz merchant platform:</p>
+
+        <h3>Backend (gmehom-common)</h3>
+        <table>
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td><code>AddressController.java</code></td><td>POST /api/v1/common/address — proxy to juso.go.kr</td></tr>
+            <tr><td><code>Juso.java</code></td><td>Address model (all fields)</td></tr>
+            <tr><td><code>AddressApiResult.java</code></td><td>API response wrapper</td></tr>
+            <tr><td><code>GlobalConfig.java</code></td><td>Stores API keys via @Value</td></tr>
+        </table>
+
+        <h3>Frontend (GMEBIZ_Web_Merchant)</h3>
+        <table>
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td><code>DialogAddressHTML.js</code></td><td>Search dialog component (MUI Dialog)</td></tr>
+            <tr><td><code>TableOnboardingAddress.js</code></td><td>Results table with 도로명/지번 badges</td></tr>
+            <tr><td><code>StepBusinessAddress.js</code></td><td>Signup step — business address</td></tr>
+            <tr><td><code>StepCompanyRepresentative.js</code></td><td>CEO address scope</td></tr>
+            <tr><td><code>CategoryService.js</code></td><td>API service layer</td></tr>
+            <tr><td><code>store/apps/category/index.js</code></td><td>Redux thunk (getAllAddress)</td></tr>
+        </table>
+
+        <h3>GMEBiz API Request Format</h3>
+<pre><span class="comment">// GMEBiz uses POST with standardized format</span>
+{
+  <span class="prop">"function"</span>: <span class="string">"SEARCH"</span>,
+  <span class="prop">"scope"</span>: <span class="string">"BYKEYWORD"</span>,
+  <span class="prop">"data"</span>: {
+    <span class="prop">"query_params"</span>: {
+      <span class="prop">"value"</span>: <span class="string">"강남대로"</span>,
+      <span class="prop">"count"</span>: <span class="number">20</span>,
+      <span class="prop">"page_number"</span>: <span class="number">1</span>,
+      <span class="prop">"language"</span>: <span class="string">"kr"</span>
+    }
+  }
+}
+
+<span class="comment">// This standalone project uses simpler GET params instead</span></pre>
+    </div>
+
+</div>
+
+<footer>
+    Korean Address Search API — Implementation Guide<br>
+    Project: AddressSearch (ASP.NET 8.0) | API: juso.go.kr<br>
+    Generated: March 2026
+</footer>
+
+</body>
+</html>
